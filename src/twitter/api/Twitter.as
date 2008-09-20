@@ -70,9 +70,10 @@ package twitter.api {
       PROTOCOL_TOKEN + "://twitter.com/statuses/featured.xml";
     private static const LITE:String = "?lite=true";
     
+    public var useHTTPS:Boolean;
+
     // internal variables
     private var _loaders:Array;
-    private var useHTTPS:Boolean;
 
     function Twitter() 
     {
