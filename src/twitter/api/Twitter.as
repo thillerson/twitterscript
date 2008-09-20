@@ -28,7 +28,11 @@ package twitter.api {
    */ 
   public class Twitter extends EventDispatcher
   {
-    // constatns used for loaders
+    // constants used for loaders
+    private static const HTTP:String = 'http';
+    private static const HTTPS:String = 'https';
+    private static const PROTOCOL_TOKEN:String = "$protocol"
+    
     private static const FRIENDS:String = "friends";
     private static const FRIENDS_TIMELINE:String =
       "friendsTimeline";
@@ -43,31 +47,32 @@ package twitter.api {
     private static const FEATURED:String = "featured";
     
     private static const LOAD_FRIENDS_URL:String = 
-      "http://twitter.com/statuses/friends/$userId.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/friends/$userId.xml";
     private static const LOAD_FRIENDS_TIMELINE_URL:String = 
-      "http://twitter.com/statuses/friends_timeline/$userId.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/friends_timeline/$userId.xml";
     private static const PUBLIC_TIMELINE_URL:String = 
-      "http://twitter.com/statuses/public_timeline.xml"
+      PROTOCOL_TOKEN + "://twitter.com/statuses/public_timeline.xml"
     private static const LOAD_USER_TIMELINE_URL:String = 
-      "http://twitter.com/statuses/user_timeline/$userId.xml"
+      PROTOCOL_TOKEN + "://twitter.com/statuses/user_timeline/$userId.xml"
     private static const FOLLOW_USER_URL:String = 
-      "http://twitter.com/friendships/create/$userId.xml";
+      PROTOCOL_TOKEN + "://twitter.com/friendships/create/$userId.xml";
     private static const SET_STATUS_URL:String = 
-      "http://twitter.com/statuses/update.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/update.xml";
     private static const SHOW_STATUS_URL:String = 
-      "http://twitter.com/statuses/show/$id.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/show/$id.xml";
     private static const REPLIES_URL:String = 
-      "http://twitter.com/statuses/replies.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/replies.xml";
     private static const DESTROY_URL:String = 
-      "http://twitter.com/statuses/destroy/$id.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/destroy/$id.xml";
     private static const FOLLOWERS_URL:String = 
-      "http://twitter.com/statuses/followers.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/followers.xml";
     private static const FEATURED_USERS_URL:String = 
-      "http://twitter.com/statuses/featured.xml";
+      PROTOCOL_TOKEN + "://twitter.com/statuses/featured.xml";
     private static const LITE:String = "?lite=true";
     
     // internal variables
     private var _loaders:Array;
+    private var useHTTPS:Boolean;
 
     function Twitter() 
     {
@@ -95,7 +100,8 @@ package twitter.api {
       lite:Boolean = true):void {
       var friendsLoader:URLLoader = getLoader(FRIENDS);
       var urlStr:String =
-        LOAD_FRIENDS_URL.replace("$userId", userId);
+        LOAD_FRIENDS_URL.replace("$userId", userId).
+        	replace(PROTOCOL_TOKEN, protocol);
       if (lite) {
         urlStr += LITE;
       }
@@ -110,7 +116,9 @@ package twitter.api {
       var friendsTimelineLoader:URLLoader = 
         getLoader(FRIENDS_TIMELINE);
       friendsTimelineLoader.load(new URLRequest(
-        LOAD_FRIENDS_TIMELINE_URL.replace("$userId",userId)));
+        LOAD_FRIENDS_TIMELINE_URL.replace("$userId",userId).
+        	replace(PROTOCOL_TOKEN, protocol)
+       ));
     }
     /**
     * Loads the timeline of all public users on Twitter.
@@ -119,7 +127,7 @@ package twitter.api {
       var publicTimelineLoader:URLLoader =
         getLoader(PUBLIC_TIMELINE);
       publicTimelineLoader.load(new URLRequest(
-        PUBLIC_TIMELINE_URL));
+        PUBLIC_TIMELINE_URL.replace(PROTOCOL_TOKEN, protocol)));
     }
     
     /**
@@ -130,7 +138,9 @@ package twitter.api {
       var userTimelineLoader:URLLoader =
         getLoader(USER_TIMELINE);
       userTimelineLoader.load(new URLRequest(
-        LOAD_USER_TIMELINE_URL.replace("$userId", userId)));
+        LOAD_USER_TIMELINE_URL.replace("$userId", userId).
+        	replace(PROTOCOL_TOKEN, protocol)
+      ));
     }
     
     /**
@@ -140,7 +150,9 @@ package twitter.api {
     public function follow(userId:String):void
     {
       var req:URLRequest = new URLRequest(
-        FOLLOW_USER_URL.replace("$userId",userId));
+        FOLLOW_USER_URL.replace("$userId",userId).
+        	replace(PROTOCOL_TOKEN, protocol)
+      );
       req.method = "POST";
       getLoader(FOLLOW_USER).load(req);
     }
@@ -151,7 +163,8 @@ package twitter.api {
     public function setStatus(statusString:String):void {
       if (statusString.length <= 140) {
         var request:URLRequest =
-          new URLRequest(SET_STATUS_URL);
+          new URLRequest(SET_STATUS_URL.replace(
+          	PROTOCOL_TOKEN, protocol));
         request.method = "POST"
         var variables:URLVariables = new URLVariables();
         variables.status = statusString;
@@ -173,7 +186,9 @@ package twitter.api {
     public function showStatus(id:String):void {
       var showStatusLoader:URLLoader = getLoader(SHOW_STATUS);
       showStatusLoader.load(new URLRequest(
-        SHOW_STATUS_URL.replace("$id",id)));
+        SHOW_STATUS_URL.replace("$id",id).
+        	replace(PROTOCOL_TOKEN, protocol)
+      ));
     }
     
     /**
@@ -182,12 +197,15 @@ package twitter.api {
      */
     public function loadReplies():void {
       var repliesLoader:URLLoader = getLoader(REPLIES);
-      repliesLoader.load(new URLRequest(REPLIES_URL));
+      repliesLoader.load(new URLRequest(REPLIES_URL.
+      	replace(PROTOCOL_TOKEN, protocol)
+      ));
     }
     
     public function loadFollowers(lite:Boolean=true):void {
       var followersLoader:URLLoader = getLoader(FOLLOWERS);
-      var urlStr:String = FOLLOWERS_URL;
+      var urlStr:String = FOLLOWERS_URL.replace(
+      	PROTOCOL_TOKEN, protocol);
       if (lite) {
         urlStr += LITE;
       }
@@ -196,7 +214,9 @@ package twitter.api {
     
     public function loadFeatured():void {
       var featuredLoader:URLLoader = getLoader(FEATURED);
-      featuredLoader.load(new URLRequest(FEATURED_USERS_URL));
+      featuredLoader.load(new URLRequest(FEATURED_USERS_URL.
+      	replace(PROTOCOL_TOKEN, protocol)
+      ));
     }
     
     //private handlers for the events coming back from twitter
@@ -342,6 +362,14 @@ package twitter.api {
     
     private function getLoader(name:String):URLLoader {
       return _loaders[name] as URLLoader;
+    }
+    
+    private function get protocol():String {
+    	if (useHTTPS) {
+    		return HTTPS;
+    	} else {
+    		return HTTP;
+    	}
     }
   }
 }
