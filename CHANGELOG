@@ -1,3 +1,5 @@
+20/09/2008 - 14:10
+* added ability to authenticate. Doesn't work for Flash player 9.0.115 at all and only works for > 9.0.115 if the remote site has allow-http-request-headers-from set permissively. Twitter does not, so this feature only works for AIR.
 20/09/2008 - 12:53
 * added the option to use http or https as a protocol by calling useHTTPS on an instance of Twitter.
 20/09/2008 - 12:07

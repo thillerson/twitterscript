@@ -14,6 +14,8 @@ package twitter.api {
   import flash.net.*;
   import flash.xml.*;
   
+  import mx.utils.Base64Encoder;
+  
   import twitter.api.data.*;
   import twitter.api.events.TwitterEvent;
   
@@ -74,6 +76,7 @@ package twitter.api {
 
     // internal variables
     private var _loaders:Array;
+    private var authorizationHeader:URLRequestHeader;
 
     function Twitter() 
     {
@@ -94,6 +97,38 @@ package twitter.api {
     // Public API
     
     /**
+     * Sets the username and password for this instance, setting the 
+     * flag to use https to true. Note that this will not 
+     * work at all in Flash player 9.0.115, and will only work in later
+     * versions if the remote server has the 
+     * <code>allow-http-request-headers-from</code> tag set permissively 
+     * in its crossdomain policy file. For more information see:
+     * http://kb.adobe.com/selfservice/viewContent.do?externalId=kb403184.
+     * Unfortunately Twitter has it set to (as of Sept 2008):
+     * <allow-http-request-headers-from domain="*.twitter.com" headers="*" secure="true"/>
+     * which only lets in the twitter badges originating from twitter.com. Since
+     * that's the case, authentication will only work for AIR.
+     * 
+     * If you use this for Flash in the browser, it will fail over
+     * to the browser's basic auth without an issue.
+     * 
+     * @param username
+     * @param password
+     * 
+     */    
+    public function setAuthenticationCredentials(username:String, password:String):void {
+		if (username != null && password != null){
+	    	useHTTPS = true;
+			var creds:String = username + ":" + password;
+			var encoder:Base64Encoder = new Base64Encoder();
+			encoder.encode(creds);
+			var encodedCredentials:String = encoder.toString();
+			authorizationHeader = new URLRequestHeader("Authorization",
+				"Basic " + encodedCredentials);
+		}
+    }
+    
+    /**
      * Loads a list of Twitter friends and (optionally) their
      * statuses. Authentication required for private users.
      */
@@ -106,7 +141,7 @@ package twitter.api {
       if (lite) {
         urlStr += LITE;
       }
-      friendsLoader.load(new URLRequest(urlStr));
+      friendsLoader.load(getUrlRequest(urlStr));
     }
 
     /**
@@ -116,7 +151,7 @@ package twitter.api {
     public function loadFriendsTimeline(userId:String):void {
       var friendsTimelineLoader:URLLoader = 
         getLoader(FRIENDS_TIMELINE);
-      friendsTimelineLoader.load(new URLRequest(
+      friendsTimelineLoader.load(getUrlRequest(
         LOAD_FRIENDS_TIMELINE_URL.replace("$userId",userId).
         	replace(PROTOCOL_TOKEN, protocol)
        ));
@@ -127,7 +162,7 @@ package twitter.api {
     public function loadPublicTimeline():void {
       var publicTimelineLoader:URLLoader =
         getLoader(PUBLIC_TIMELINE);
-      publicTimelineLoader.load(new URLRequest(
+      publicTimelineLoader.load(getUrlRequest(
         PUBLIC_TIMELINE_URL.replace(PROTOCOL_TOKEN, protocol)));
     }
     
@@ -138,7 +173,7 @@ package twitter.api {
     public function loadUserTimeline(userId:String):void {
       var userTimelineLoader:URLLoader =
         getLoader(USER_TIMELINE);
-      userTimelineLoader.load(new URLRequest(
+      userTimelineLoader.load(getUrlRequest(
         LOAD_USER_TIMELINE_URL.replace("$userId", userId).
         	replace(PROTOCOL_TOKEN, protocol)
       ));
@@ -150,7 +185,7 @@ package twitter.api {
      */
     public function follow(userId:String):void
     {
-      var req:URLRequest = new URLRequest(
+      var req:URLRequest = getUrlRequest(
         FOLLOW_USER_URL.replace("$userId",userId).
         	replace(PROTOCOL_TOKEN, protocol)
       );
@@ -164,7 +199,7 @@ package twitter.api {
     public function setStatus(statusString:String):void {
       if (statusString.length <= 140) {
         var request:URLRequest =
-          new URLRequest(SET_STATUS_URL.replace(
+          getUrlRequest(SET_STATUS_URL.replace(
           	PROTOCOL_TOKEN, protocol));
         request.method = "POST"
         var variables:URLVariables = new URLVariables();
@@ -186,7 +221,7 @@ package twitter.api {
      */
     public function showStatus(id:String):void {
       var showStatusLoader:URLLoader = getLoader(SHOW_STATUS);
-      showStatusLoader.load(new URLRequest(
+      showStatusLoader.load(getUrlRequest(
         SHOW_STATUS_URL.replace("$id",id).
         	replace(PROTOCOL_TOKEN, protocol)
       ));
@@ -198,7 +233,7 @@ package twitter.api {
      */
     public function loadReplies():void {
       var repliesLoader:URLLoader = getLoader(REPLIES);
-      repliesLoader.load(new URLRequest(REPLIES_URL.
+      repliesLoader.load(getUrlRequest(REPLIES_URL.
       	replace(PROTOCOL_TOKEN, protocol)
       ));
     }
@@ -210,12 +245,12 @@ package twitter.api {
       if (lite) {
         urlStr += LITE;
       }
-      followersLoader.load(new URLRequest(urlStr));
+      followersLoader.load(getUrlRequest(urlStr));
     }
     
     public function loadFeatured():void {
       var featuredLoader:URLLoader = getLoader(FEATURED);
-      featuredLoader.load(new URLRequest(FEATURED_USERS_URL.
+      featuredLoader.load(getUrlRequest(FEATURED_USERS_URL.
       	replace(PROTOCOL_TOKEN, protocol)
       ));
     }
@@ -359,6 +394,14 @@ package twitter.api {
       loader.addEventListener(
         SecurityErrorEvent.SECURITY_ERROR, errorHandler);
       _loaders[name] = loader;
+    }
+    
+    private function getUrlRequest(url:String=null):URLRequest {
+    	var ur:URLRequest = new URLRequest(url);
+    	if (authorizationHeader) {
+    		ur.requestHeaders = [authorizationHeader];
+    	}
+    	return ur;
     }
     
     private function getLoader(name:String):URLLoader {
