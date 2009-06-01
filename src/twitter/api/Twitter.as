@@ -47,6 +47,7 @@ package twitter.api {
     private static const DESTROY:String = "destroy";
     private static const FOLLOWERS:String = "followers";
     private static const FEATURED:String = "featured";
+    private static const VERIFY_CREDENTIALS:String = "verifyCredentials";
     
     private static const LOAD_FRIENDS_URL:String = 
       PROTOCOL_TOKEN + "://twitter.com/statuses/friends/$userId.xml";
@@ -71,6 +72,8 @@ package twitter.api {
     private static const FEATURED_USERS_URL:String = 
       PROTOCOL_TOKEN + "://twitter.com/statuses/featured.xml";
     private static const LITE:String = "?lite=true";
+	private static const VERIFY_CREDENTIALS_URL:String = 
+		"https://twitter.com/account/verify_credentials.xml";    
     
     public var useHTTPS:Boolean;
 
@@ -92,6 +95,7 @@ package twitter.api {
       addLoader(DESTROY, destroyHandler);
       addLoader(FOLLOWERS, followersHandler);
       addLoader(FEATURED, featuredHandler);
+      addLoader(VERIFY_CREDENTIALS, verifyCredentialsHandler);
     }
   
     // Public API
@@ -255,8 +259,33 @@ package twitter.api {
       ));
     }
     
-    //private handlers for the events coming back from twitter
+    public function verifyCredentials(username:String, password:String):void {
+    	setAuthenticationCredentials(username, password);
+    	var verifyCredentialsLoader:URLLoader = getLoader(VERIFY_CREDENTIALS);
+	 	verifyCredentialsLoader.addEventListener(HTTPStatusEvent.HTTP_RESPONSE_STATUS, onVerifyCredentialsHttpResponseStatus);
+	 	verifyCredentialsLoader.load( getUrlRequest(VERIFY_CREDENTIALS_URL.
+	 		replace(PROTOCOL_TOKEN, protocol)
+	 	));
+    }
+ 
     
+    //private handlers for the events coming back from twitter
+	private function onVerifyCredentialsHttpResponseStatus(event:HTTPStatusEvent):void {
+		var success:Boolean = false;
+		if (event.status==200) {
+			success = true;
+		}
+		// else:  401 error usually
+		
+		var result:TwitterEvent = new TwitterEvent (TwitterEvent.ON_VERIFY_CREDENTIALS);
+		result.data = {success:success};
+		dispatchEvent (result);
+	}
+	
+	private function verifyCredentialsHandler(e:Event):void {
+		
+	}
+		   
     private function friendsHandler(e:Event):void {
       var xml:XML = new XML(getLoader(FRIENDS).data);
       var userArray:Array = new Array();
@@ -399,6 +428,7 @@ package twitter.api {
     private function getUrlRequest(url:String=null):URLRequest {
     	var ur:URLRequest = new URLRequest(url);
     	if (authorizationHeader) {
+    		ur.authenticate = false;
     		ur.requestHeaders = [authorizationHeader];
     	}
     	return ur;
